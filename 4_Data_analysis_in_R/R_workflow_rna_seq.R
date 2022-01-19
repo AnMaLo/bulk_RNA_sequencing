@@ -9,41 +9,43 @@ library(enrichplot)
 library(ggstance)
 library(ggupset)
 
+
 # ---------------- Import --------------------------------------
-# Import data from featureCounts
+## Import data from featureCounts
 countdata <- read.table("feature_counts.txt", header=TRUE, row.names=1)
 
+
 # ---------------- 5. Exploratory data analysis ----------------
-# Check if the samples from the same experimental group show similar gene
-# expression patterns Remove first five columns, by removing (chr, start, end,
-# strand, length)
+## Check if the samples from the same experimental group show similar gene
+## expression patterns Remove first five columns, by removing (chr, start, end,
+## strand, length)
 countdata <- countdata[ ,6:ncol(countdata)]
 
-# Remove sorted.bam from filenames
+## Remove sorted.bam from filenames
 colnames(countdata) <- gsub("\\.sorted.bam$", "", colnames(countdata))
 
-# Convert to matrix
+## Convert to matrix
 countdata <- as.matrix(countdata)
 
-# specify the experimental group of each sample. 
+## specify the experimental group of each sample. 
 group <- factor(c(rep("HER2+", 3), rep("NonTNBC", 3), rep("TNBC", 3), rep("Normal", 3)))
 condition <- factor(c(rep("Sample", 9), rep("Normal", 3)))
 sample <- factor(c("1", "2", "3", "1", "2", "3", "1", "2", "3", "1", "2", "3"))
 
-# Create the DESeqDataSet object: Read in the counts from FeatureCounts 
+## Create the DESeqDataSet object: Read in the counts from FeatureCounts 
 (coldata <- data.frame(row.names=colnames(countdata), group, sample, condition))
 dds <- DESeqDataSetFromMatrix(countData=countdata, colData=coldata, design=~group+sample)
 
-# Run the DESeq2::DESeq() function and save its output to a variable.
+## Run the DESeq2::DESeq() function and save its output to a variable.
 dds <- DESeq(dds)
 
-# log transformation. Remove the dependence of the variance on the mean
+## log transformation. Remove the dependence of the variance on the mean
 rld <- rlog(dds, blind=TRUE)
 
-# histogram of the log-transformation
+## histogram of the log-transformation
 hist(assay(rld))
 
-# Assess how the samples cluster based on their gene expression profiles
+## Assess how the samples cluster based on their gene expression profiles
 plotPCA(rld, intgroup="group")
 
 
@@ -56,7 +58,7 @@ res2 <- results(dds, contrast=c("group", "HER", "TNBC"), alpha = 0.05)
 res1 <- res1[order(res1$padj), ]
 res2 <- res2[order(res2$padj), ]
 
-# print out a summary of the results 
+## print out a summary of the results 
 summary(res1)
 summary(res2)
 
@@ -96,11 +98,12 @@ par(mfrow=c(2,1))
 plot( res1$log2FoldChange, -log(res1$padj), ylab="-log", xlab="log2FoldChange", main = "TNBC vs. Non-TNBC")
 plot( res2$log2FoldChange, -log(res2$padj), ylab="-log", xlab="log2FoldChange", main = "HER2+ vs. TNBC")
 
-# ---------------- 7. Over-representation analysis ----------------
-# ClusterProfiler to identify Gene Ontology terms that contain more differential
-# expressed genes than expected by chance for the pairwise comparisons
 
-# GO of pairwise comparison number 1 
+# ---------------- 7. Over-representation analysis ----------------
+## ClusterProfiler to identify Gene Ontology terms that contain more differential
+## expressed genes than expected by chance for the pairwise comparisons
+
+## GO of pairwise comparison number 1 
 data     <-  resdata1
 geneList <- as.character(data$Gene)
 data(geneList)
@@ -110,7 +113,7 @@ gene.df1 <- bitr(de, fromType = "ENTREZID",
                 toType = c("ENSEMBL", "SYMBOL"),
                 OrgDb = "org.Hs.eg.db")
 
-# GO of pairwise comparison number 2
+## GO of pairwise comparison number 2
 data     <-  resdata2
 geneList <- as.character(data$Gene)
 data(geneList)
@@ -121,7 +124,7 @@ gene.df2 <- bitr(de, fromType = "ENTREZID",
                 OrgDb = "org.Hs.eg.db")
 
 ## GO over-representation analysis
-# The clusterProfiler package for gene ontology over-representation test.
+## The clusterProfiler package for gene ontology over-representation test.
 
 ego1  <- enrichGO(gene         = gene.df1$ENSEMBL,
                  OrgDb         = "org.Hs.eg.db",
@@ -139,8 +142,8 @@ ego2  <- enrichGO(gene         = gene.df2$ENSEMBL,
                  pvalueCutoff  = 0.05,
                  readable      = TRUE)
 
-# ---------------- Visualization of functional enrichment result ---------------- 
 
+# ---------------- Visualization of functional enrichment result ---------------- 
 ## Mutate the results
 x1 <- mutate(ego1, qscore = -log(p.adjust, base=10))
 y1 <- mutate(ego1, richFactor = Count / as.numeric(sub("/\\d+", "", BgRatio)))
@@ -177,4 +180,3 @@ ggplot(y2, showCategory = 14,
   xlab("rich factor") +
   ylab(NULL) + 
   ggtitle("Enriched Ontology")
-
