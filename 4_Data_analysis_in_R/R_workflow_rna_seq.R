@@ -26,8 +26,8 @@ colnames(countdata) <- gsub("\\.sorted.bam$", "", colnames(countdata))
 countdata <- as.matrix(countdata)
 
 # specify the experimental group of each sample. 
-group <- factor(c(rep("HER2+", 3), rep("NonTNBC", 3), rep("TNBC", 3), rep("Normal", 3)))
-condition <- factor(c(rep("Sample", 9), rep("Normal", 3)))
+group <- factor(c(rep("HER2+", 3), rep("Non-TNBC", 3), rep("TNBC", 3), rep("Healthy", 3)))
+condition <- factor(c(rep("Tumor", 9), rep("Healthy", 3)))
 sample <- factor(c("1", "2", "3", "1", "2", "3", "1", "2", "3", "1", "2", "3"))
 
 # Create the DESeqDataSet object: Read in the counts from FeatureCounts 
@@ -52,7 +52,7 @@ dev.off()
 
 # ---------------- 6. Differential expression analysis ----------------
 # Extract the results for at least one pairwise contrast
-res1 <- results(dds, contrast=c("group", "TNBC", "NonTNBC"), alpha = 0.05)
+res1 <- results(dds, contrast=c("group", "TNBC", "Non-TNBC"), alpha = 0.05)
 res2 <- results(dds, contrast=c("group", "HER2+", "TNBC"), alpha = 0.05)
 
 # Order by adjusted p-value
@@ -60,6 +60,9 @@ res1 <- res1[order(res1$padj), ]
 res2 <- res2[order(res2$padj), ]
 
 # print out a summary of the results 
+sum(res1$padj < 0.05, na.rm=TRUE)
+sum(res2$padj < 0.05, na.rm=TRUE)
+
 summary(res1)
 summary(res2)
 
@@ -120,8 +123,8 @@ data(geneList)
 de       <- names(geneList)[abs(geneList) > 2]
 
 gene.df1 <- bitr(de, fromType = "ENTREZID",
-                toType = c("ENSEMBL", "SYMBOL"),
-                OrgDb = "org.Hs.eg.db")
+                 toType = c("ENSEMBL", "SYMBOL"),
+                 OrgDb = "org.Hs.eg.db")
 
 # GO of pairwise comparison number 2
 data     <-  resdata2
@@ -130,69 +133,41 @@ data(geneList)
 de       <- names(geneList)[abs(geneList) > 2]
 
 gene.df2 <- bitr(de, fromType = "ENTREZID",
-                toType = c("ENSEMBL", "SYMBOL"),
-                OrgDb = "org.Hs.eg.db")
+                 toType = c("ENSEMBL", "SYMBOL"),
+                 OrgDb = "org.Hs.eg.db")
 
 # GO over-representation analysis
 # The clusterProfiler package for gene ontology over-representation test.
 
 ego1  <- enrichGO(gene         = gene.df1$ENSEMBL,
-                 OrgDb         = "org.Hs.eg.db",
-                 keyType       = 'ENSEMBL',
-                 ont           = "BP",
-                 pAdjustMethod = "BH",
-                 pvalueCutoff  = 0.05,
-                 readable      = TRUE)
+                  OrgDb         = "org.Hs.eg.db",
+                  keyType       = 'ENSEMBL',
+                  ont           = "BP",
+                  pAdjustMethod = "BH",
+                  pvalueCutoff  = 0.05,
+                  readable      = TRUE)
 
 ego2  <- enrichGO(gene         = gene.df2$ENSEMBL,
-                 OrgDb         = "org.Hs.eg.db",
-                 keyType       = 'ENSEMBL',
-                 ont           = "BP",
-                 pAdjustMethod = "BH",
-                 pvalueCutoff  = 0.05,
-                 readable      = TRUE)
+                  OrgDb         = "org.Hs.eg.db",
+                  keyType       = 'ENSEMBL',
+                  ont           = "BP",
+                  pAdjustMethod = "BH",
+                  pvalueCutoff  = 0.05,
+                  readable      = TRUE)
 
 # ---------------- Visualization of functional enrichment result ---------------- 
 
 # Mutate the results
 x1 <- mutate(ego1, qscore = -log(p.adjust, base=10))
 x2 <- mutate(ego2, qscore = -log(p.adjust, base=10))
-y1 <- mutate(ego1, richFactor = Count / as.numeric(sub("/\\d+", "", BgRatio)))
-y2 <- mutate(ego2, richFactor = Count / as.numeric(sub("/\\d+", "", BgRatio)))
 
 # simplify the output
-simplify(y1, cutoff = 0.7, by = "p.adjust")
-simplify(y2, cutoff = 0.7, by = "p.adjust")
+simplify(x1, cutoff = 0.7, by = "p.adjust")
+simplify(x2, cutoff = 0.7, by = "p.adjust")
 
 # dotPlot showing the over-representation 
 png("dot_plot.png", 1200, 1200, pointsize=20)
 par(mfrow=c(2,1))
-dotplot(x1, showCategory=14) + ggtitle("Gene Ratio per GO term")
-dotplot(x2, showCategory=14) + ggtitle("Gene Ratio per GO term")
-dev.off()
-
-# ggPlot for the enriched disease ontology 
-png("enrichment_plot.png", 1200, 1200, pointsize=20)
-par(mfrow=c(2,1))
-ggplot(y1, showCategory = 14, 
-       aes(richFactor, fct_reorder(Description, richFactor))) + 
-  geom_segment(aes(xend=0, yend = Description)) +
-  geom_point(aes(color=p.adjust, size = Count)) +
-  scale_color_viridis_c(guide=guide_colorbar(reverse=TRUE)) +
-  scale_size_continuous(range=c(2, 10)) +
-  theme_minimal() + 
-  xlab("rich factor") +
-  ylab(NULL) + 
-  ggtitle("Enriched Ontology")
-
-ggplot(y2, showCategory = 14, 
-       aes(richFactor, fct_reorder(Description, richFactor))) + 
-  geom_segment(aes(xend=0, yend = Description)) +
-  geom_point(aes(color=p.adjust, size = Count)) +
-  scale_color_viridis_c(guide=guide_colorbar(reverse=TRUE)) +
-  scale_size_continuous(range=c(2, 10)) +
-  theme_minimal() + 
-  xlab("rich factor") +
-  ylab(NULL) + 
-  ggtitle("Enriched Ontology")
+dotplot(x1, showCategory=14) + ggtitle("Over-representation analysis")
+dotplot(x2, showCategory=14) + ggtitle("Over-representation analysis")
 dev.off()
