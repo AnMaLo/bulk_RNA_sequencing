@@ -6,9 +6,8 @@
 #SBATCH --time=05:00:00
 #SBATCH --mem=1G
 
-#load modules
+#load module
 module add UHTS/Quality_control/fastqc/0.11.7
-module add UHTS/Analysis/MultiQC/1.8
 
 #create and go to the QC directory
 mkdir /data/courses/rnaseq/breastcancer_de/ananda_workspace/fastQC
