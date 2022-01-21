@@ -171,3 +171,4 @@ par(mfrow=c(2,1))
 dotplot(x1, showCategory=14) + ggtitle("Over-representation analysis")
 dotplot(x2, showCategory=14) + ggtitle("Over-representation analysis")
 dev.off()
+
